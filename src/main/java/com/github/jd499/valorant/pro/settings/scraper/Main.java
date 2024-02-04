@@ -1,5 +1,7 @@
 package com.github.jd499.valorant.pro.settings.scraper;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.Scanner;
 import java.util.stream.Collectors;
@@ -73,11 +75,49 @@ public class Main {
     System.out.println("Overall Mean eDPI: " + overallMeanEdpi);
     System.out.println("Overall Median eDPI: " + overallMedianEdpi);
 
-    // Wait for user to press Enter before exiting
-    System.out.println("Press Enter to exit...");
-    try (Scanner scanner = new Scanner(System.in)) {
-      scanner.nextLine();
+    // Displaying a random player's details
+    Scanner scanner = new Scanner(System.in);
+    while (true) {
+      System.out.println(
+          "\nPress Enter to display a random player's details or type 'exit' to quit:");
+
+      String input = scanner.nextLine();
+      // Exit the program if the user types 'exit'
+      if ("exit".equalsIgnoreCase(input)) {
+        break;
+      }
+
+      displayRandomPlayerDetails(players);
     }
+  }
+
+  /**
+   * Displays the details of a random player.
+   *
+   * @param players the list of players
+   */
+  private static void displayRandomPlayerDetails(List<Player> players) {
+    if (players.isEmpty()) {
+      System.out.println("No players data available.");
+      return;
+    }
+
+    Random random = new Random();
+    Player randomPlayer = players.get(random.nextInt(players.size()));
+
+    BigDecimal edpi = new BigDecimal(randomPlayer.edpi());
+    BigDecimal sensitivityAt400Dpi = edpi.divide(new BigDecimal("400"), 3, RoundingMode.HALF_UP);
+    BigDecimal sensitivityAt800Dpi = edpi.divide(new BigDecimal("800"), 3, RoundingMode.HALF_UP);
+    BigDecimal sensitivityAt1600Dpi = edpi.divide(new BigDecimal("1600"), 3, RoundingMode.HALF_UP);
+
+    System.out.println("\nRandom Player Information:");
+    System.out.println("Player: " + randomPlayer.name());
+    System.out.println("Team: " + randomPlayer.team());
+    System.out.println("eDPI: " + edpi);
+    System.out.println("\nSensitivity at Different DPIs:");
+    System.out.println("Sensitivity at 400 DPI: " + sensitivityAt400Dpi);
+    System.out.println("Sensitivity at 800 DPI: " + sensitivityAt800Dpi);
+    System.out.println("Sensitivity at 1600 DPI: " + sensitivityAt1600Dpi);
   }
 
   /**
