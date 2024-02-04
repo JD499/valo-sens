@@ -43,7 +43,6 @@ runtime {
 
 
     jpackage {
-        installerType = "msi"
         installerName = "ValorantProSettingsScraper"
         installerOptions = listOf("--win-console", "--win-menu", "--win-shortcut")
         imageOptions = listOf("--win-console")
