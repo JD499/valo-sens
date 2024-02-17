@@ -79,7 +79,7 @@ public class Main {
     Scanner scanner = new Scanner(System.in);
     while (true) {
       System.out.println(
-          "\nPress Enter to display a random player's details or type 'exit' to quit:");
+              "\nType a player's name to display their details, press Enter to display a random player's details, or type 'exit' to quit:");
 
       String input = scanner.nextLine();
       // Exit the program if the user types 'exit'
@@ -87,7 +87,13 @@ public class Main {
         break;
       }
 
-      displayRandomPlayerDetails(players);
+      // If the user entered a name, display the player's details
+      if (!input.trim().isEmpty()) {
+        getPlayerDetailsByName(players, input);
+      } else {
+        // If the user pressed Enter without typing a name, display a random player's details
+        displayRandomPlayerDetails(players);
+      }
     }
   }
 
@@ -197,6 +203,24 @@ public class Main {
       System.out.println(player);
     } else {
       System.out.println("No data available");
+    }
+  }
+
+/**
+ * Get player details by name
+ * @param players a list of players
+ * @param playerName the name of the player
+*/
+  private static void getPlayerDetailsByName(List<Player> players, String playerName) {
+    Player player = players.stream()
+            .filter(p -> p.name().equalsIgnoreCase(playerName))
+            .findFirst()
+            .orElse(null);
+
+    if (player != null) {
+      System.out.println(player);
+    } else {
+      System.out.println("Player not found.");
     }
   }
 }
