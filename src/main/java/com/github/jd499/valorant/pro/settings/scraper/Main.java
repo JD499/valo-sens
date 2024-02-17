@@ -217,8 +217,22 @@ public class Main {
             .findFirst()
             .orElse(null);
 
+
+
     if (player != null) {
-      System.out.println(player);
+      BigDecimal edpi = new BigDecimal(player.edpi());
+      BigDecimal sensitivityAt400Dpi = edpi.divide(new BigDecimal("400"), 3, RoundingMode.HALF_UP);
+      BigDecimal sensitivityAt800Dpi = edpi.divide(new BigDecimal("800"), 3, RoundingMode.HALF_UP);
+      BigDecimal sensitivityAt1600Dpi = edpi.divide(new BigDecimal("1600"), 3, RoundingMode.HALF_UP);
+
+      System.out.println("\nRandom Player Information:");
+      System.out.println("Player: " + player.name());
+      System.out.println("Team: " + player.team());
+      System.out.println("eDPI: " + edpi);
+      System.out.println("\nSensitivity at Different DPIs:");
+      System.out.println("Sensitivity at 400 DPI: " + sensitivityAt400Dpi);
+      System.out.println("Sensitivity at 800 DPI: " + sensitivityAt800Dpi);
+      System.out.println("Sensitivity at 1600 DPI: " + sensitivityAt1600Dpi);
     } else {
       System.out.println("Player not found.");
     }
