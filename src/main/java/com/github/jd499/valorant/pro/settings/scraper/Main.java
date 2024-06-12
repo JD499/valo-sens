@@ -89,12 +89,44 @@ public class Main {
 
       // If the user entered a name, display the player's details
       if (!input.trim().isEmpty()) {
-        getPlayerDetailsByName(players, input);
+        try {
+          double edpi = Double.parseDouble(input.trim());
+          List<Player> closestPlayers = findClosestPlayers(players, edpi, 10);
+          printClosestPlayers(closestPlayers, edpi);
+        } catch (NumberFormatException e) {
+          getPlayerDetailsByName(players, input);
+        }
       } else {
         // If the user pressed Enter without typing a name, display a random player's details
         displayRandomPlayerDetails(players);
       }
     }
+  }
+
+  /**
+   * Finds the closest players to the given eDPI.
+   *
+   * @param players the list of players
+   * @param edpi the target eDPI
+   * @param count the number of closest players to find
+   * @return a list of closest players
+   */
+  private static List<Player> findClosestPlayers(List<Player> players, double edpi, int count) {
+    return players.stream()
+            .sorted(Comparator.comparingDouble(player -> Math.abs(Double.parseDouble(player.edpi()) - edpi)))
+            .limit(count)
+            .collect(Collectors.toList());
+  }
+
+  /**
+   * Prints the closest players to the given eDPI.
+   *
+   * @param closestPlayers the list of closest players
+   * @param targetEdpi the target eDPI
+   */
+  private static void printClosestPlayers(List<Player> closestPlayers, double targetEdpi) {
+    System.out.println("\nPlayers closest to eDPI " + targetEdpi + ":\n");
+    closestPlayers.forEach(System.out::println);
   }
 
   /**
