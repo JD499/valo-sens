@@ -1,12 +1,7 @@
 plugins {
     id("java")
-    id("com.github.johnrengelman.shadow") version "8.1.1"
-    id("org.beryx.runtime") version "1.12.7"
+    id("org.graalvm.buildtools.native") version "0.10.2"
 }
-
-group = "com.github.jd499.valorant.pro.settings.scraper"
-
-
 
 repositories {
     mavenCentral()
@@ -25,34 +20,16 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter")
 }
 
-project.setProperty("mainClassName", "com.github.jd499.valorant.pro.settings.scraper.Main")
+graalvmNative {
+    binaries {
+        named("main") {
+            mainClass.set("com.github.jd499.valorant.pro.settings.scraper.Main")
+            buildArgs.add("--enable-url-protocols=http")
+            buildArgs.add("--enable-url-protocols=https")
+        }
+    }
+}
 
 tasks.test {
     useJUnitPlatform()
 }
-
-tasks.jar {
-    manifest {
-        attributes["Main-Class"] = "com.github.jd499.valorant.pro.settings.scraper.Main"
-    }
-}
-
-runtime {
-    options.set(listOf("--strip-debug", "--no-header-files", "--no-man-pages"))
-    modules = listOf("java.desktop", "java.xml", "jdk.crypto.ec")
-
-
-    jpackage {
-        installerName = "ValorantProSettingsScraper"
-        installerOptions = listOf("--win-console", "--win-menu", "--win-shortcut")
-        imageOptions = listOf("--win-console")
-
-
-    }
-
-}
-
-
-
-
-
