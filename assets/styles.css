@@ -1,5 +1,6 @@
 :root {
     --primary-color: #0366d6;
+    --primary-darker: #0351a8;
     --text-color: #24292e;
     --bg-color: #ffffff;
     --border-color: #e1e4e8;
@@ -12,6 +13,7 @@
     --radius: 6px;
     --shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
     --container-padding: 2rem;
+    --button-text-light: #ffffff;
 }
 
 @font-face {
@@ -102,6 +104,7 @@ button, .nav button {
     cursor: pointer;
     border-radius: var(--radius);
     font-family: var(--mono-font);
+    color: var(--text-color);
 }
 
 .nav button {
@@ -114,9 +117,22 @@ button, .nav button {
 button:hover,
 .nav button:hover,
 .nav button.tab-active {
-    background: var(--primary-color);
-    color: white;
-    border-color: var(--primary-color);
+    background: var(--primary-darker);
+    color: var(--button-text-light);
+    border-color: var(--primary-darker);
+}
+
+
+button:hover .social-icon,
+.nav button:hover .social-icon,
+.nav button.tab-active .social-icon {
+    filter: brightness(0) invert(1);
+}
+
+
+.nav button span,
+.nav button.tab-active span {
+    color: inherit;
 }
 
 button:hover svg,
