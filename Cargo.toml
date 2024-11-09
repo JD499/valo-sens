@@ -1,0 +1,15 @@
+[package]
+name = "valo-sens"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = "0.8.0-alpha.1"
+tower-http ={ version = "0.6.1", features = ["fs", "trace"] }
+tokio = { version = "1.41.1", features = ["macros", "rt-multi-thread"] }
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+tracing = "0.1.40"
+reqwest = "0.12.9"
+serde = { version = "1.0.214", features = ["derive"] }
+scraper = "0.21.0"
+rusqlite = { version = "0.32.0", features = ["bundled"] }
