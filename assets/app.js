@@ -109,9 +109,14 @@ function renderError(containerId, message) {
 function renderProCard(pro, enableClick = false) {
     return `
         <div class="pro-card ${enableClick ? 'cursor-pointer' : ''}"
-             ${enableClick ? `data-pro='${JSON.stringify(pro)}'` : ''}>
+             ${enableClick ? `data-pro='${JSON.stringify(pro)}'` : ''}
+             role="listitem"
+             aria-label="Player profile for ${pro.name}"
+             ${enableClick ? 'tabindex="0"' : ''}
+             ${enableClick ? 'aria-pressed="false"' : ''}
+             ${enableClick ? `aria-description="Click to convert to ${pro.name}'s sensitivity settings"` : ''}>
             <div>
-                <h3>${pro.name}</h3>
+                <h3 role="heading" aria-level="3">${pro.name}</h3>
                 <p>${pro.team}</p>
             </div>
             <div>
@@ -126,8 +131,12 @@ function renderProList(players, targetId, enableClick = false) {
     const container = document.getElementById(targetId);
     if (!container) return;
 
+    // Set the container role
+    container.setAttribute('role', 'list');
+    container.setAttribute('aria-label', 'List of players');
+
     if (!players.length) {
-        container.innerHTML = '<div>No players found</div>';
+        container.innerHTML = '<div role="listitem">No players found</div>';
         return;
     }
 
