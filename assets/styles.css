@@ -253,6 +253,24 @@ input:focus {
     gap: 0.5rem;
 }
 
+.scroll-sentinel {
+    height: 20px;
+    margin: 0;
+    padding: 0;
+    visibility: hidden;
+}
+
+
+.scroll-area {
+    max-height: 24rem;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    padding: 0.5rem;
+    background: var(--bg-color);
+    position: relative;
+}
+
 
 @media (max-width: 768px) {
     :root {

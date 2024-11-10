@@ -1,15 +1,13 @@
-
 const API_ENDPOINTS = {
     PLAYERS: '/api/players'
 };
 
 const DEBOUNCE_DELAY = 300;
 const state = {
-    loading: false,
-    cachedPlayers: [],
-    selectedPro: null
+    loading: false, cachedPlayers: [], selectedPro: null, infiniteScroll: {
+        currentPage: 1, itemsPerPage: 30, hasMore: true, isLoading: false
+    }, currentPlayers: [],
 };
-
 
 const elements = {
     loading: document.getElementById('loading'),
@@ -27,20 +25,7 @@ const elements = {
 };
 
 function validateElements() {
-    const requiredElements = [
-        'loading',
-        'proList',
-        'similarProList',
-        'conversionResult',
-        'convertedValue',
-        'advancedOptions',
-        'searchInput',
-        'proSearch',
-        'similarForm',
-        'convertForm',
-        'advancedToggle',
-        'manualConvertBtn'
-    ];
+    const requiredElements = ['loading', 'proList', 'similarProList', 'conversionResult', 'convertedValue', 'advancedOptions', 'searchInput', 'proSearch', 'similarForm', 'convertForm', 'advancedToggle', 'manualConvertBtn'];
 
     const missingElements = requiredElements.filter(id => !elements[id]);
     if (missingElements.length > 0) {
@@ -49,7 +34,6 @@ function validateElements() {
     }
     return true;
 }
-
 
 const tabs = {
     search: document.getElementById('searchTab'),
@@ -62,7 +46,6 @@ const contents = {
     similar: document.getElementById('similarContent'),
     convert: document.getElementById('convertContent')
 };
-
 
 function debounce(func, wait) {
     let timeout;
@@ -88,10 +71,9 @@ function getInputValue(id) {
     return parseFloat(document.getElementById(id)?.value);
 }
 
-function scrollToElement(element, options = { behavior: 'smooth' }) {
+function scrollToElement(element, options = {behavior: 'smooth'}) {
     element?.scrollIntoView(options);
 }
-
 
 function setLoading(loading) {
     state.loading = loading;
@@ -127,30 +109,155 @@ function renderProCard(pro, enableClick = false) {
     `;
 }
 
-function renderProList(players, targetId, enableClick = false) {
+
+function renderProList(players, targetId, enableClick = false, append = false) {
+    console.log('renderProList called with:', {
+        totalPlayers: players.length, targetId, enableClick, append, currentPage: state.infiniteScroll.currentPage
+    });
+
     const container = document.getElementById(targetId);
     if (!container) return;
 
-    // Set the container role
-    container.setAttribute('role', 'list');
-    container.setAttribute('aria-label', 'List of players');
-
-    if (!players.length) {
+    if (!players.length && !append) {
         container.innerHTML = '<div role="listitem">No players found</div>';
         return;
     }
 
-    container.innerHTML = players.map(pro => renderProCard(pro, enableClick)).join('');
+
+    const start = (state.infiniteScroll.currentPage - 1) * state.infiniteScroll.itemsPerPage;
+    const end = start + state.infiniteScroll.itemsPerPage;
+    const paginatedPlayers = players.slice(start, end);
+
+    console.log('Pagination info:', {
+        start, end, paginatedPlayersLength: paginatedPlayers.length, remainingPlayers: players.length - end
+    });
+
+
+    state.infiniteScroll.hasMore = players.length - end > 0;
+    console.log('hasMore:', state.infiniteScroll.hasMore);
+
+    if (!paginatedPlayers.length && append) {
+        console.log('No more players to load');
+        return;
+    }
+
+
+    const existingSentinel = container.querySelector('.scroll-sentinel');
+    if (existingSentinel) {
+        existingSentinel.remove();
+    }
+
+
+    const html = paginatedPlayers.map(pro => renderProCard(pro, enableClick)).join('');
+
+
+    if (append) {
+        container.insertAdjacentHTML('beforeend', html);
+        console.log('Appended new players');
+    } else {
+        container.innerHTML = html;
+        console.log('Replaced all players');
+    }
+
 
     if (enableClick) {
-        container.querySelectorAll('[data-pro]').forEach(el => {
+        container.querySelectorAll('[data-pro]:not([data-handler])').forEach(el => {
+            el.setAttribute('data-handler', 'true');
             el.addEventListener('click', () => {
                 state.selectedPro = JSON.parse(el.dataset.pro);
                 convertToProSettings();
             });
         });
     }
+
+
+    if (state.infiniteScroll.hasMore) {
+        const sentinel = document.createElement('div');
+        sentinel.className = 'scroll-sentinel';
+        container.appendChild(sentinel);
+        console.log('Added sentinel element');
+
+
+        if (window.scrollObserver) {
+            window.scrollObserver.observe(sentinel);
+            console.log('Started observing new sentinel');
+        }
+    }
 }
+
+function createScrollObserver() {
+    console.log('Creating scroll observer');
+
+    const options = {
+        root: null, rootMargin: '100px', threshold: 0
+    };
+
+    return new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            console.log('Intersection observer triggered:', {
+                isIntersecting: entry.isIntersecting,
+                isLoading: state.infiniteScroll.isLoading,
+                hasMore: state.infiniteScroll.hasMore
+            });
+
+            if (entry.isIntersecting && !state.infiniteScroll.isLoading && state.infiniteScroll.hasMore) {
+                console.log('Loading more players...');
+                loadMorePlayers();
+            }
+        });
+    }, options);
+}
+
+
+async function loadMorePlayers() {
+    console.log('loadMorePlayers called:', {
+        isLoading: state.infiniteScroll.isLoading,
+        hasMore: state.infiniteScroll.hasMore,
+        currentPage: state.infiniteScroll.currentPage,
+        totalPlayers: state.currentPlayers.length
+    });
+
+    if (state.infiniteScroll.isLoading || !state.infiniteScroll.hasMore) {
+        console.log('Cancelled loadMorePlayers - already loading or no more content');
+        return;
+    }
+
+    state.infiniteScroll.isLoading = true;
+
+    try {
+        state.infiniteScroll.currentPage++;
+        console.log('Incremented page to:', state.infiniteScroll.currentPage);
+
+
+        renderProList(state.currentPlayers, 'proList', false, true);
+    } finally {
+        state.infiniteScroll.isLoading = false;
+        console.log('Finished loading more players');
+    }
+}
+
+
+function searchPlayers(query = '') {
+    const searchTerm = query.toLowerCase().trim();
+
+    console.log('searchPlayers called with:', searchTerm);
+
+
+    state.infiniteScroll.currentPage = 1;
+    state.infiniteScroll.hasMore = true;
+
+
+    state.currentPlayers = state.cachedPlayers.filter(pro => pro.name.toLowerCase().includes(searchTerm) || pro.team.toLowerCase().includes(searchTerm));
+
+    console.log('Search results:', {
+        totalResults: state.currentPlayers.length,
+        hasMore: state.infiniteScroll.hasMore,
+        currentPage: state.infiniteScroll.currentPage
+    });
+
+    return state.currentPlayers;
+}
+
 
 function switchTab(tabName) {
     Object.values(tabs).forEach(tab => tab.classList.remove('tab-active'));
@@ -163,14 +270,12 @@ function switchTab(tabName) {
 function findSimilarPlayers(targetEdpi, limit = 10) {
     return state.cachedPlayers
         .map(pro => ({
-            ...pro,
-            difference: Math.abs(pro.edpi - targetEdpi)
+            ...pro, difference: Math.abs(pro.edpi - targetEdpi)
         }))
         .sort((a, b) => a.difference - b.difference)
         .slice(0, limit)
-        .map(({ difference, ...pro }) => pro);
+        .map(({difference, ...pro}) => pro);
 }
-
 
 async function handleSimilarFormSubmit(e) {
     e.preventDefault();
@@ -193,7 +298,6 @@ async function handleSimilarFormSubmit(e) {
     }
 }
 
-
 function convertSensitivity(currentDpi, currentSens, targetDpi) {
     return (currentDpi * currentSens) / targetDpi;
 }
@@ -206,7 +310,6 @@ function displayConvertedSensitivity(value) {
     scrollToElement(elements.conversionResult);
 }
 
-
 function convertToProSettings() {
     if (!state.selectedPro) return;
 
@@ -217,11 +320,7 @@ function convertToProSettings() {
     }
 
     try {
-        const convertedSens = convertSensitivity(
-            state.selectedPro.dpi,
-            state.selectedPro.sens,
-            yourDpi
-        );
+        const convertedSens = convertSensitivity(state.selectedPro.dpi, state.selectedPro.sens, yourDpi);
         displayConvertedSensitivity(convertedSens);
     } catch (error) {
         console.error('Error converting sensitivity:', error);
@@ -254,22 +353,9 @@ function toggleAdvancedOptions() {
     const isHidden = elements.advancedOptions.classList.toggle('hidden');
     const buttonText = isHidden ? 'Show Manual DPI Conversion' : 'Hide Manual DPI Conversion';
 
-
     const buttonSpan = elements.advancedToggle.querySelector('span');
     buttonSpan.textContent = buttonText;
-
 }
-
-
-function searchPlayers(query = '') {
-    const searchTerm = query.toLowerCase().trim();
-    return state.cachedPlayers.filter(pro =>
-        pro.name.toLowerCase().includes(searchTerm) ||
-        pro.team.toLowerCase().includes(searchTerm)
-    );
-}
-
-
 
 function initializeEventListeners() {
     if (!validateElements()) {
@@ -283,21 +369,22 @@ function initializeEventListeners() {
         }
     });
 
-
-    elements.searchInput.addEventListener('input',
-        debounce(e => {
-            const filtered = searchPlayers(e.target.value);
-            renderProList(filtered, 'proList');
-        }, DEBOUNCE_DELAY)
-    );
+    elements.searchInput.addEventListener('input', debounce(e => {
+        const filtered = searchPlayers(e.target.value);
+        state.infiniteScroll.currentPage = 1;
+        renderProList(filtered, 'proList', false, false);
 
 
-    elements.proSearch.addEventListener('input',
-        debounce(e => {
-            const filtered = searchPlayers(e.target.value);
-            renderProList(filtered, 'convertProList', true);
-        }, DEBOUNCE_DELAY)
-    );
+        const sentinel = elements.proList.querySelector('.scroll-sentinel');
+        if (sentinel) window.scrollObserver.observe(sentinel);
+    }, DEBOUNCE_DELAY));
+
+
+    elements.proSearch.addEventListener('input', debounce(e => {
+        const filtered = searchPlayers(e.target.value);
+
+        renderConvertProList(filtered, 'convertProList');
+    }, DEBOUNCE_DELAY));
 
     elements.similarForm.addEventListener('submit', handleSimilarFormSubmit);
     elements.convertForm.addEventListener('submit', e => {
@@ -315,9 +402,13 @@ async function initializeProLists() {
         const data = await fetchJson(API_ENDPOINTS.PLAYERS, 'Error fetching initial players');
         if (data.data) {
             state.cachedPlayers = data.data;
+            state.currentPlayers = data.data;
 
-            renderProList(data.data, 'proList');
-            renderProList(data.data, 'convertProList', true);
+
+            renderProList(state.currentPlayers, 'proList', false, false);
+
+
+            renderConvertProList(state.currentPlayers, 'convertProList');
         }
     } catch (error) {
         console.error('Error initializing pro lists:', error);
@@ -328,17 +419,42 @@ async function initializeProLists() {
 }
 
 
+function renderConvertProList(players, targetId) {
+    const container = document.getElementById(targetId);
+    if (!container) return;
+
+    if (!players.length) {
+        container.innerHTML = '<div role="listitem">No players found</div>';
+        return;
+    }
+
+
+    container.innerHTML = players.map(pro => renderProCard(pro, true)).join('');
+
+
+    container.querySelectorAll('[data-pro]').forEach(el => {
+        el.addEventListener('click', () => {
+            state.selectedPro = JSON.parse(el.dataset.pro);
+            convertToProSettings();
+        });
+    });
+}
+
+
 async function initialize() {
     try {
         if (!validateElements()) {
             throw new Error('Required DOM elements are missing');
         }
+
+
+        window.scrollObserver = createScrollObserver();
+
         initializeEventListeners();
         await initializeProLists();
     } catch (error) {
         console.error('Initialization error:', error);
     }
 }
-
 
 initialize();
