@@ -13,6 +13,20 @@ const state = {
     }
 };
 
+function createPlaceholder(count = 5) {
+    const placeholder = document.createElement('div');
+    placeholder.className = 'content-placeholder';
+
+
+    for (let i = 0; i < count; i++) {
+        const cardPlaceholder = document.createElement('div');
+        cardPlaceholder.className = 'pro-card-placeholder';
+        placeholder.appendChild(cardPlaceholder);
+    }
+
+    return placeholder;
+}
+
 const elements = {
     loading: document.getElementById('loading'),
     proList: document.getElementById('proList'),
@@ -109,10 +123,14 @@ function scrollToElement(element, options = {behavior: 'smooth'}) {
     element?.scrollIntoView(options);
 }
 
+
 function setLoading(loading) {
     state.loading = loading;
-    elements.loading.classList.toggle('hidden', !loading);
-    elements.proList.classList.toggle('hidden', loading);
+
+    if (loading) {
+        elements.proList.innerHTML = '';
+        elements.proList.appendChild(createPlaceholder());
+    }
 }
 
 function renderError(containerId, message) {
@@ -147,6 +165,13 @@ function renderProCard(pro, enableClick = false) {
 function renderProList(players, targetId, enableClick = false, append = false) {
     const container = document.getElementById(targetId);
     if (!container) return;
+
+
+    if (!append) {
+        container.innerHTML = '';
+        container.appendChild(createPlaceholder());
+    }
+
 
     if (!players.length && !append) {
         container.innerHTML = '<div role="listitem">No players found</div>';
@@ -210,9 +235,7 @@ function renderProList(players, targetId, enableClick = false, append = false) {
 
 
 const createBaseScrollObserver = (callback, rootMargin = '100px') => new IntersectionObserver(entries => entries.forEach(entry => entry.isIntersecting && callback()), {
-    root: null,
-    rootMargin,
-    threshold: 0
+    root: null, rootMargin, threshold: 0
 });
 
 function createScrollObserver() {
@@ -317,12 +340,16 @@ function convertSensitivity(currentDpi, currentSens, targetDpi) {
     return (currentDpi * currentSens) / targetDpi;
 }
 
+
 function displayConvertedSensitivity(value) {
     if (!elements.conversionResult || !elements.convertedValue) return;
 
     elements.conversionResult.classList.remove('hidden');
-    elements.convertedValue.textContent = value.toFixed(3);
-    scrollToElement(elements.conversionResult);
+
+    requestAnimationFrame(() => {
+        elements.conversionResult.classList.add('visible');
+        elements.convertedValue.textContent = value.toFixed(3);
+    });
 }
 
 function convertToProSettings() {

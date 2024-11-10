@@ -63,7 +63,15 @@
             <div class="hidden" id="loading">
                 <div aria-label="Loading content" class="loader"></div>
             </div>
-            <div class="scroll-area" id="proList" role="list" aria-label="List of players"></div>
+            <div aria-label="List of players" class="scroll-area" id="proList" role="list">
+                <div class="content-placeholder">
+                    <div class="pro-card-placeholder"></div>
+                    <div class="pro-card-placeholder"></div>
+                    <div class="pro-card-placeholder"></div>
+                    <div class="pro-card-placeholder"></div>
+                    <div class="pro-card-placeholder"></div>
+                </div>
+            </div>
         </section>
 
         <!-- Similar Tab Content -->
@@ -127,7 +135,7 @@
                 </div>
 
                 <button class="form-button" id="advancedToggle" type="button">
-                    <img alt="adjust logo"  height="24" src="/assets/adjust.svg" width="24"/>
+                    <img alt="adjust logo" height="24" src="/assets/adjust.svg" width="24"/>
                     <span>Show Manual DPI Conversion</span>
                 </button>
 

@@ -272,6 +272,74 @@ input:focus {
 }
 
 
+.scroll-area {
+    min-height: 200px;
+    contain: layout paint;
+}
+
+
+.content-placeholder {
+    background: var(--header-bg);
+    border-radius: var(--radius);
+    animation: pulse 1.5s infinite;
+    height: 100%;
+    min-height: inherit;
+}
+
+.pro-card-placeholder {
+    height: 80px;
+    margin-bottom: 0.5rem;
+    background: var(--header-bg);
+    border-radius: var(--radius);
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 0.6;
+    }
+    50% {
+        opacity: 0.8;
+    }
+    100% {
+        opacity: 0.6;
+    }
+}
+
+
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+.footer {
+    margin-top: auto;
+}
+
+
+#conversionResult {
+    min-height: 100px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+#conversionResult.visible {
+    opacity: 1;
+}
+
+
+.social-icon {
+    width: 24px;
+    height: 24px;
+    aspect-ratio: 1;
+}
+
+
 @media (max-width: 768px) {
     :root {
         --container-padding: 1rem;
