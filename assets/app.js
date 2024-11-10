@@ -7,6 +7,10 @@ const state = {
     loading: false, cachedPlayers: [], selectedPro: null, infiniteScroll: {
         currentPage: 1, itemsPerPage: 30, hasMore: true, isLoading: false
     }, currentPlayers: [],
+
+    convertList: {
+        currentPage: 1, itemsPerPage: 15, hasMore: true, isLoading: false
+    }
 };
 
 const elements = {
@@ -383,7 +387,9 @@ function initializeEventListeners() {
     elements.proSearch.addEventListener('input', debounce(e => {
         const filtered = searchPlayers(e.target.value);
 
-        renderConvertProList(filtered, 'convertProList');
+        state.convertList.currentPage = 1;
+        state.convertList.hasMore = true;
+        renderConvertProList(filtered, 'convertProList', false);
     }, DEBOUNCE_DELAY));
 
     elements.similarForm.addEventListener('submit', handleSimilarFormSubmit);
@@ -396,6 +402,7 @@ function initializeEventListeners() {
     elements.manualConvertBtn.addEventListener('click', handleManualConvert);
 }
 
+
 async function initializeProLists() {
     try {
         setLoading(true);
@@ -406,9 +413,7 @@ async function initializeProLists() {
 
 
             renderProList(state.currentPlayers, 'proList', false, false);
-
-
-            renderConvertProList(state.currentPlayers, 'convertProList');
+            renderConvertProList(state.currentPlayers, 'convertProList', false);
         }
     } catch (error) {
         console.error('Error initializing pro lists:', error);
@@ -419,25 +424,87 @@ async function initializeProLists() {
 }
 
 
-function renderConvertProList(players, targetId) {
+function renderConvertProList(players, targetId, append = false) {
     const container = document.getElementById(targetId);
     if (!container) return;
 
-    if (!players.length) {
+    if (!players.length && !append) {
         container.innerHTML = '<div role="listitem">No players found</div>';
         return;
     }
 
 
-    container.innerHTML = players.map(pro => renderProCard(pro, true)).join('');
+    const start = (state.convertList.currentPage - 1) * state.convertList.itemsPerPage;
+    const end = start + state.convertList.itemsPerPage;
+    const paginatedPlayers = players.slice(start, end);
 
 
-    container.querySelectorAll('[data-pro]').forEach(el => {
+    state.convertList.hasMore = players.length > end;
+
+
+    const existingSentinel = container.querySelector('.scroll-sentinel');
+    if (existingSentinel) {
+        existingSentinel.remove();
+    }
+
+
+    const html = paginatedPlayers.map(pro => renderProCard(pro, true)).join('');
+
+
+    if (append) {
+        container.insertAdjacentHTML('beforeend', html);
+    } else {
+        container.innerHTML = html;
+    }
+
+
+    container.querySelectorAll('[data-pro]:not([data-handler])').forEach(el => {
+        el.setAttribute('data-handler', 'true');
         el.addEventListener('click', () => {
             state.selectedPro = JSON.parse(el.dataset.pro);
             convertToProSettings();
         });
     });
+
+
+    if (state.convertList.hasMore) {
+        const sentinel = document.createElement('div');
+        sentinel.className = 'scroll-sentinel';
+        container.appendChild(sentinel);
+
+
+        if (!window.convertScrollObserver) {
+            window.convertScrollObserver = createConvertScrollObserver();
+        }
+        window.convertScrollObserver.observe(sentinel);
+    }
+}
+
+
+function createConvertScrollObserver() {
+    return new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting && !state.convertList.isLoading && state.convertList.hasMore) {
+                loadMoreConvertPlayers();
+            }
+        });
+    }, {
+        root: null, rootMargin: '50px', threshold: 0
+    });
+}
+
+
+async function loadMoreConvertPlayers() {
+    if (state.convertList.isLoading || !state.convertList.hasMore) return;
+
+    state.convertList.isLoading = true;
+
+    try {
+        state.convertList.currentPage++;
+        renderConvertProList(state.currentPlayers, 'convertProList', true);
+    } finally {
+        state.convertList.isLoading = false;
+    }
 }
 
 
