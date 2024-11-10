@@ -28,6 +28,36 @@ const elements = {
     manualConvertBtn: document.getElementById('manualConvertBtn')
 };
 
+
+const createElement = (type, className, attributes = {}) => {
+    const element = document.createElement(type);
+    if (className) element.className = className;
+    Object.entries(attributes).forEach(([key, value]) => element.setAttribute(key, value));
+    return element;
+};
+
+
+const memoizedRenderProCard = (() => {
+    const cache = new Map();
+
+    return (pro, enableClick) => {
+        const cacheKey = `${pro.name}-${pro.team}-${pro.sens}-${pro.dpi}-${enableClick}`;
+
+        if (!cache.has(cacheKey)) {
+            const card = renderProCard(pro, enableClick);
+            cache.set(cacheKey, card);
+
+
+            if (cache.size > 1000) {
+                const firstKey = cache.keys().next().value;
+                cache.delete(firstKey);
+            }
+        }
+
+        return cache.get(cacheKey);
+    };
+})();
+
 function validateElements() {
     const requiredElements = ['loading', 'proList', 'similarProList', 'conversionResult', 'convertedValue', 'advancedOptions', 'searchInput', 'proSearch', 'similarForm', 'convertForm', 'advancedToggle', 'manualConvertBtn'];
 
@@ -115,10 +145,6 @@ function renderProCard(pro, enableClick = false) {
 
 
 function renderProList(players, targetId, enableClick = false, append = false) {
-    console.log('renderProList called with:', {
-        totalPlayers: players.length, targetId, enableClick, append, currentPage: state.infiniteScroll.currentPage
-    });
-
     const container = document.getElementById(targetId);
     if (!container) return;
 
@@ -127,89 +153,74 @@ function renderProList(players, targetId, enableClick = false, append = false) {
         return;
     }
 
-
-    const start = (state.infiniteScroll.currentPage - 1) * state.infiniteScroll.itemsPerPage;
-    const end = start + state.infiniteScroll.itemsPerPage;
+    const fragment = document.createDocumentFragment();
+    const stateObj = targetId === 'convertProList' ? state.convertList : state.infiniteScroll;
+    const start = (stateObj.currentPage - 1) * stateObj.itemsPerPage;
+    const end = start + stateObj.itemsPerPage;
     const paginatedPlayers = players.slice(start, end);
-
-    console.log('Pagination info:', {
-        start, end, paginatedPlayersLength: paginatedPlayers.length, remainingPlayers: players.length - end
-    });
-
-
-    state.infiniteScroll.hasMore = players.length - end > 0;
-    console.log('hasMore:', state.infiniteScroll.hasMore);
-
-    if (!paginatedPlayers.length && append) {
-        console.log('No more players to load');
-        return;
-    }
 
 
     const existingSentinel = container.querySelector('.scroll-sentinel');
-    if (existingSentinel) {
-        existingSentinel.remove();
-    }
+    existingSentinel?.remove();
 
 
-    const html = paginatedPlayers.map(pro => renderProCard(pro, enableClick)).join('');
-
+    const html = paginatedPlayers.map(pro => memoizedRenderProCard(pro, enableClick)).join('');
 
     if (append) {
-        container.insertAdjacentHTML('beforeend', html);
-        console.log('Appended new players');
+        const temp = createElement('div');
+        temp.innerHTML = html;
+        while (temp.firstChild) {
+            fragment.appendChild(temp.firstChild);
+        }
+        container.appendChild(fragment);
     } else {
         container.innerHTML = html;
-        console.log('Replaced all players');
     }
 
 
     if (enableClick) {
-        container.querySelectorAll('[data-pro]:not([data-handler])').forEach(el => {
-            el.setAttribute('data-handler', 'true');
-            el.addEventListener('click', () => {
-                state.selectedPro = JSON.parse(el.dataset.pro);
-                convertToProSettings();
-            });
-        });
-    }
+        const newCards = container.querySelectorAll('[data-pro]:not([data-handler])');
+        if (newCards.length) {
+            const handler = (e) => {
+                const card = e.target.closest('[data-pro]');
+                if (card) {
+                    state.selectedPro = JSON.parse(card.dataset.pro);
+                    convertToProSettings();
+                }
+            };
 
 
-    if (state.infiniteScroll.hasMore) {
-        const sentinel = document.createElement('div');
-        sentinel.className = 'scroll-sentinel';
-        container.appendChild(sentinel);
-        console.log('Added sentinel element');
-
-
-        if (window.scrollObserver) {
-            window.scrollObserver.observe(sentinel);
-            console.log('Started observing new sentinel');
+            container.addEventListener('click', handler);
+            newCards.forEach(el => el.setAttribute('data-handler', 'true'));
         }
     }
+
+
+    if (players.length > end) {
+        const sentinel = createElement('div', 'scroll-sentinel');
+        container.appendChild(sentinel);
+
+        const observer = targetId === 'convertProList' ? (window.convertScrollObserver || (window.convertScrollObserver = createConvertScrollObserver())) : (window.scrollObserver || (window.scrollObserver = createScrollObserver()));
+
+        observer.observe(sentinel);
+    }
+
+    stateObj.hasMore = players.length > end;
 }
 
+
+const createBaseScrollObserver = (callback, rootMargin = '100px') => new IntersectionObserver(entries => entries.forEach(entry => entry.isIntersecting && callback()), {
+    root: null,
+    rootMargin,
+    threshold: 0
+});
+
 function createScrollObserver() {
-    console.log('Creating scroll observer');
+    return createBaseScrollObserver(() => !state.infiniteScroll.isLoading && state.infiniteScroll.hasMore && loadMorePlayers());
+}
 
-    const options = {
-        root: null, rootMargin: '100px', threshold: 0
-    };
-
-    return new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            console.log('Intersection observer triggered:', {
-                isIntersecting: entry.isIntersecting,
-                isLoading: state.infiniteScroll.isLoading,
-                hasMore: state.infiniteScroll.hasMore
-            });
-
-            if (entry.isIntersecting && !state.infiniteScroll.isLoading && state.infiniteScroll.hasMore) {
-                console.log('Loading more players...');
-                loadMorePlayers();
-            }
-        });
-    }, options);
+function createConvertScrollObserver() {
+    return createBaseScrollObserver(() => !state.convertList.isLoading && state.convertList.hasMore && loadMoreConvertPlayers(), '50px');
 }
 
 
@@ -478,19 +489,6 @@ function renderConvertProList(players, targetId, append = false) {
         }
         window.convertScrollObserver.observe(sentinel);
     }
-}
-
-
-function createConvertScrollObserver() {
-    return new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting && !state.convertList.isLoading && state.convertList.hasMore) {
-                loadMoreConvertPlayers();
-            }
-        });
-    }, {
-        root: null, rootMargin: '50px', threshold: 0
-    });
 }
 
 
