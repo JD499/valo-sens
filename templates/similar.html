@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section aria-labelledby="similar-heading" class="card" id="similarContent">
+    <h2 id="similar-heading">Find Similar Sensitivities</h2>
+    <form method="post" action="/similar" id="similarForm">
+        <div class="form-section">
+            <h3>Your Settings</h3>
+            <div class="form-grid">
+                <div>
+                    <input aria-label="Your DPI" name="dpi" id="similarDpi" placeholder="Your DPI (e.g. 800)" required
+                        type="number">
+                </div>
+                <div>
+                    <input aria-label="Your Sensitivity" name="sens" id="similarSens"
+                        placeholder="Your Sensitivity (e.g. 0.32)" required step="0.001" type="number">
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3>Similar Pro Settings</h3>
+            <div aria-label="Similar pro players list" class="scroll-area" id="similarProList" role="list">
+                {% if players.is_empty() %}
+                <div role="listitem">No similar players found</div>
+                {% else %}
+                {% for player in players %}
+                <div class="pro-card" role="listitem" aria-label="Player profile for {{ player.name }}">
+                    <div>
+                        <h3 role="heading" aria-level="3">{{ player.name }}</h3>
+                        <p>{{ player.team }}</p>
+                    </div>
+                    <div>
+                        <p>Sens: {{ player.sens }}</p>
+                        <p>DPI: {{ player.dpi }} | eDPI: {{ player.edpi }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+
+        <button class="form-button" type="submit">Find Similar Pros</button>
+    </form>
+</section>
+{% endblock %}

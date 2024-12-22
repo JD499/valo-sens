@@ -13,3 +13,4 @@ reqwest = "0.12.9"
 serde = { version = "1.0.214", features = ["derive"] }
 scraper = "0.21.0"
 rusqlite = { version = "0.32.0", features = ["bundled"] }
+askama = "0.12.1"

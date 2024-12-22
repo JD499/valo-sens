@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section aria-labelledby="convert-heading" class="card" id="convertContent">
+    <h2 id="convert-heading">Convert Sensitivity</h2>
+    <form method="get" action="/convert" id="convertForm">
+        <div class="form-section">
+            <h3>Your Settings</h3>
+            <div class="form-grid">
+                <input aria-label="Your DPI" name="your_dpi" id="yourDpi"
+                    value="{% if your_dpi.is_some() %}{{ your_dpi.unwrap() }}{% endif %}"
+                    placeholder="Your DPI (e.g. 800)" required type="number">
+                <input aria-label="Your Sensitivity" name="your_sens" id="yourSens"
+                    value="{% if your_sens.is_some() %}{{ your_sens.unwrap() }}{% endif %}"
+                    placeholder="Your Sensitivity (e.g. 0.32)" required step="0.001" type="number">
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3>Select Pro Player</h3>
+            <input aria-label="Search Pro Player" name="q" id="proSearch"
+                value="{% if query.is_some() %}{{ query.as_ref().unwrap() }}{% endif %}"
+                placeholder="Search pro player..." type="text">
+            <div class="scroll-area scroll-area-sm" id="convertProList" role="list">
+                {% if players.is_empty() %}
+                <div role="listitem">No players found</div>
+                {% else %}
+                {% for player in players %}
+                <div class="pro-card cursor-pointer" role="listitem" aria-label="Player profile for {{ player.name }}"
+                    data-pro='{"name":"{{ player.name }}","team":"{{ player.team }}","sens":{{ player.sens }},"dpi":{{ player.dpi }},"edpi":{{ player.edpi }}}'>
+                    <div>
+                        <h3 role="heading" aria-level="3">{{ player.name }}</h3>
+                        <p>{{ player.team }}</p>
+                    </div>
+                    <div>
+                        <p>Sens: {{ player.sens }}</p>
+                        <p>DPI: {{ player.dpi }} | eDPI: {{ player.edpi }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+
+
+        <input type="hidden" name="selected_pro" id="selectedPlayer">
+
+        {% if converted_sens.is_some() %}
+        <div class="visible" id="conversionResult">
+            <div id="convertedValue">{{ converted_sens.unwrap() }}</div>
+            <p>Equivalent sensitivity for your DPI</p>
+        </div>
+        {% else %}
+        <div class="hidden" id="conversionResult">
+            <div id="convertedValue"></div>
+            <p>Equivalent sensitivity for your DPI</p>
+        </div>
+        {% endif %}
+
+        <button class="form-button" id="advancedToggle" type="button">
+            <img alt="adjust logo" height="24" src="/assets/adjust.svg" width="24" />
+            <span>Show Manual DPI Conversion</span>
+        </button>
+
+        <div class="hidden" id="advancedOptions">
+            <div class="form-section">
+                <h3>Manual DPI Conversion</h3>
+                <input aria-label="Target DPI" name="target_dpi" id="targetDpi"
+                    value="{% if target_dpi.is_some() %}{{ target_dpi.unwrap() }}{% endif %}"
+                    placeholder="Target DPI (e.g. 400)" type="number">
+                <button class="form-button" type="submit">
+                    Calculate Manual Conversion
+                </button>
+            </div>
+        </div>
+    </form>
+</section>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const proSearch = document.getElementById('proSearch');
+        const convertProList = document.getElementById('convertProList');
+        const advancedToggle = document.getElementById('advancedToggle');
+        const advancedOptions = document.getElementById('advancedOptions');
+        const convertForm = document.getElementById('convertForm');
+        const selectedPlayer = document.getElementById('selectedPlayer');
+
+
+        let debounceTimeout;
+        proSearch?.addEventListener('input', (e) => {
+            clearTimeout(debounceTimeout);
+            debounceTimeout = setTimeout(async () => {
+                const searchQuery = e.target.value;
+                const response = await fetch(`/convert?q=${encodeURIComponent(searchQuery)}`, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                const html = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const newList = doc.getElementById('convertProList');
+                if (newList) {
+                    convertProList.innerHTML = newList.innerHTML;
+                }
+            }, 300);
+        });
+
+
+        convertProList?.addEventListener('click', (e) => {
+            const proCard = e.target.closest('.pro-card');
+            if (!proCard) return;
+
+            const yourDpi = document.getElementById('yourDpi').value;
+            const yourSens = document.getElementById('yourSens').value;
+
+            if (!yourDpi || !yourSens) {
+                alert('Please enter your DPI and sensitivity first');
+                return;
+            }
+
+            document.getElementById('targetDpi').value = '';
+
+            const proData = JSON.parse(proCard.getAttribute('data-pro'));
+            selectedPlayer.value = proData.name;
+            convertForm.submit();
+        });
+
+
+        advancedToggle?.addEventListener('click', () => {
+            advancedOptions.classList.toggle('hidden');
+            const isHidden = advancedOptions.classList.contains('hidden');
+            advancedToggle.querySelector('span').textContent =
+                isHidden ? 'Show Manual DPI Conversion' : 'Hide Manual DPI Conversion';
+        });
+    });
+</script>
+{% endblock %}

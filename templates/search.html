@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section aria-labelledby="search-heading" class="card" id="searchContent">
+    <h2 id="search-heading">Search Pro Players</h2>
+    <form method="get" action="/search" id="searchForm">
+        <input aria-label="Search pro players" name="q" id="searchInput"
+            value="{% if query.is_some() %}{{ query.as_ref().unwrap() }}{% endif %}"
+            placeholder="Search by player name..." type="text">
+    </form>
+
+    <div aria-label="List of players" class="scroll-area" id="proList" role="list">
+        {% if players.is_empty() %}
+        <div role="listitem">No players found</div>
+        {% else %}
+        {% for player in players %}
+        <div class="pro-card" role="listitem" aria-label="Player profile for {{ player.name }}">
+            <div>
+                <h3 role="heading" aria-level="3">{{ player.name }}</h3>
+                <p>{{ player.team }}</p>
+            </div>
+            <div>
+                <p>Sens: {{ player.sens }}</p>
+                <p>DPI: {{ player.dpi }} | eDPI: {{ player.edpi }}</p>
+            </div>
+        </div>
+        {% endfor %}
+        {% endif %}
+    </div>
+</section>
+
+<script>
+    if ('fetch' in window) {
+        let debounceTimeout;
+        const searchInput = document.getElementById('searchInput');
+        const searchForm = document.getElementById('searchForm');
+
+        function debounce(func, wait) {
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(debounceTimeout);
+                    func(...args);
+                };
+                clearTimeout(debounceTimeout);
+                debounceTimeout = setTimeout(later, wait);
+            };
+        }
+
+        async function performSearch(query) {
+            try {
+                const url = new URL(window.location);
+                url.searchParams.set('q', query);
+                window.history.replaceState({}, '', url);
+
+                const response = await fetch(`/search?q=${encodeURIComponent(query)}`, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                if (!response.ok) throw new Error('Network response was not ok');
+
+                const html = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const newProList = doc.getElementById('proList');
+
+                if (newProList) {
+                    const proList = document.getElementById('proList');
+                    proList.setAttribute('aria-busy', 'true');
+                    proList.innerHTML = newProList.innerHTML;
+                    proList.setAttribute('aria-busy', 'false');
+                }
+            } catch (error) {
+                console.error('Error performing search:', error);
+            }
+        }
+
+        const debouncedSearch = debounce(performSearch, 300);
+
+        searchInput.addEventListener('input', (e) => {
+            debouncedSearch(e.target.value);
+        });
+
+        searchForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            performSearch(searchInput.value);
+        });
+    }
+</script>
+{% endblock %}
