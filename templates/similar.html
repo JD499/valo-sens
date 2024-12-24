@@ -2,7 +2,7 @@
 
 {% block content %}
 <section aria-labelledby="similar-heading" class="card" id="similarContent">
-    <h2 id="similar-heading">Find Similar Sensitivities</h2>
+    <h2 id="similar-heading">Find Similar Pros</h2>
     <form method="post" action="/similar" id="similarForm">
         <div class="form-section">
             <h3>Your Settings</h3>
@@ -19,7 +19,7 @@
         </div>
 
         <div class="form-section">
-            <h3>Similar Pro Settings</h3>
+            <h3>Similar Pros</h3>
             <div aria-label="Similar pro players list" class="scroll-area" id="similarProList" role="list">
                 {% if players.is_empty() %}
                 <div role="listitem">No similar players found</div>
