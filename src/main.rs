@@ -305,17 +305,17 @@ async fn convert_page(
 
     let converted_sens = match (your_dpi, your_sens) {
         (Some(dpi), Some(sens)) if dpi > 0 && sens > 0.0 => {
-            let edpi = dpi as f64 * sens;
+            let your_edpi = dpi as f64 * sens;
 
             if let Some(target) = target_dpi {
                 if target > 0 {
-                    Some((edpi / target as f64 * 1000.0).round() / 1000.0)
+                    Some((your_edpi / target as f64 * 1000.0).round() / 1000.0)
                 } else {
                     None
                 }
-            } else if let Some(pro_name) = query.selected_pro {
-                if let Some(pro) = players.iter().find(|p| p.name == pro_name) {
-                    Some((edpi / pro.dpi as f64 * 1000.0).round() / 1000.0)
+            } else if let Some(pro_name) = &query.selected_pro {
+                if let Some(pro) = players.iter().find(|p| p.name == *pro_name) {
+                    Some(((pro.edpi / dpi as f64 * 1000.0).round()) / 1000.0)
                 } else {
                     None
                 }
